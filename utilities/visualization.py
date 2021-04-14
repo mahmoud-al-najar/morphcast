@@ -38,7 +38,7 @@ def visualize_topo_2d_1d(topo, vmin=None, vmax=None, title=None):
     axes[0].xaxis.set_tick_params(rotation=-45)
     plt.colorbar(im, ax=axes[0], shrink=0.7)
 
-    avg_df = topo.get_average_profile()
+    avg_df = topo.get_average_cross_shore_profile()
     axes[1].plot(avg_df.lng, avg_df.z)
     axes[1].set_title('Cross-shore average')
     axes[1].xaxis.set_tick_params(rotation=-45)
