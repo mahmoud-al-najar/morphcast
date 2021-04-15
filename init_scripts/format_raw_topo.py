@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from scipy import interpolate
+from itertools import groupby
 
 from utilities.wrappers import Topo
 from utilities.common import get_datetime_from_ymd_string
@@ -111,9 +112,23 @@ interpolated_master_grid = None
 for x in range(xs):
     for y in range(ys):
         pixel_series = master_grid[:, y, x]
-        nan_indices = np.argwhere(np.isnan(pixel_series))
+        nan_indices = np.argwhere(np.isnan(pixel_series))#[:, 0]
+
         vs = np.delete(pixel_series, nan_indices)
         ds = np.delete(dates, nan_indices)
+
+        gaps_in_days = np.diff(ds) / np.timedelta64(1, 'D')
+        # print(gaps_in_days)
+        # lists = [list(g) for k, g in groupby(gaps_in_days, lambda x: x <= 45) if k]
+        # print(lists)
+        gaps_mask = gaps_in_days < 45
+        for i in range(len(gaps_in_days)):
+            d1 = ds[i]
+            d2 = ds[i+1]
+            gap = gaps_in_days[i]
+            keep = gaps_mask[i]
+            print(d1, d2, gap, keep)
+        exit()
 
         target_dates = np.arange(ds[0], ds[len(ds) - 1], np.timedelta64(1, 'M'),
                                  dtype='datetime64[M]')  # Y-M only
