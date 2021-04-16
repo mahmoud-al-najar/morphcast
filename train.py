@@ -1,116 +1,56 @@
-import os
 import time
 import random
-# import datetime
 import numpy as np
-import datetime
-from datetime import datetime as dt
-import matplotlib.pyplot as plt
-import pandas as pd
 
 import torch
-import torchvision
 from torch import nn, optim
 
 from model import AutoEncoder
 from utilities.dataloader import Dataset
-from utilities.common import get_datetime_from_ymd_string
-
-intervals = (
-    ('weeks', 604800),  # 60 * 60 * 24 * 7
-    ('days', 86400),    # 60 * 60 * 24
-    ('hours', 3600),    # 60 * 60
-    ('minutes', 60),
-    ('seconds', 1),
-    )
-
-
-def display_time(seconds, granularity=2):
-    result = []
-
-    for name, count in intervals:
-        value = seconds // count
-        if value:
-            seconds -= value * count
-            if value == 1:
-                name = name.rstrip('s')
-            result.append("{} {}".format(value, name))
-    return ', '.join(result[:granularity])
+from utilities.data_io import make_sub_areas
 
 
 random.seed(0)
-data_dir_path = '/media/mn/WD4TB/topo/survey_dems/xyz_data/FULL'
-files = [f for f in os.listdir(data_dir_path) if f.endswith('_FULL.npy')]
 
-ids = [x.replace('_FULL.npy', '') for x in files]
+# TODO: refactor data handling?
+mg = np.load('./data/interpolated_master_grid.npy')
+sub_area_pairs = make_sub_areas(mg, 20, pairs=True)
+random.shuffle(sub_area_pairs)
 
-date_ids = []
-for x in ids:
-    date_ids.append(get_datetime_from_ymd_string(x))
-ids = []
-labels = []
-diffs = []
-for i in range(len(date_ids) - 1):
-    d0 = sorted(date_ids)[i]
-    d1 = sorted(date_ids)[i+1]
-    k_d0 = f'{d0.year}{"{:02d}".format(d0.month)}{"{:02d}".format(d0.day)}'
-    k_d1 = f'{d1.year}{"{:02d}".format(d1.month)}{"{:02d}".format(d1.day)}'
-    diff = d1 - d0
-    # print(k_d0, k_d1, diff.days)
-    ids.append(k_d0)
-    labels.append(k_d1)
-    diffs.append(diff.days)
+train_ratio = 0.7
+val_ratio = 0.1
+test_ratio = 0.2
 
-df = pd.DataFrame({'id': ids, 'label': labels, 'difference': diffs})
-df = df.sample(frac=1).reset_index(drop=True)
-df = df[df.difference < 45]
-train_count = int(len(df) * 0.8)
+train_count = int(len(sub_area_pairs) * train_ratio)
+val_count = int(len(sub_area_pairs) * val_ratio)
+test_count = int(len(sub_area_pairs) * test_ratio)
 
-train_ids = df.id.values[:train_count]
-train_labels = df.label.values[:train_count]
-labels_dict = {}
-for i in range(len(train_ids)):
-    labels_dict[train_ids[i]] = train_labels[i]
-train_set = Dataset(list_ids=train_ids, labels=labels_dict)
+train_pairs = np.array(sub_area_pairs[:train_count])
+val_pairs = np.array(sub_area_pairs[train_count:train_count+val_count])
+test_pairs = np.array(sub_area_pairs[-test_count:])
+
+train_set = Dataset(pairs=train_pairs)
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True)
 
-val_ids = df.id.values[train_count:]
-val_labels = df.label.values[train_count:]
-labels_dict = {}
-for i in range(len(val_ids)):
-    labels_dict[val_ids[i]] = val_labels[i]
-val_set = Dataset(list_ids=val_ids, labels=labels_dict)
+val_set = Dataset(pairs=val_pairs)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size=64, shuffle=True)
 
-data_iter = iter(train_loader)
-images, labels = data_iter.next()
+test_set = Dataset(pairs=test_pairs)
+test_loader = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True)
 
-# figure = plt.figure()
-# num_of_images = 60
-# for index in range(1, num_of_images + 1):
-#     plt.subplot(6, 10, index)
-#     plt.axis('off')
-#     plt.imshow(images[index].numpy().squeeze(), cmap='gray_r')
-# plt.show()
-
-model = AutoEncoder()
+model = AutoEncoder().double()
 print(model)
 
 criterion = nn.MSELoss()
-images, labels = next(iter(train_loader))
 
-print(images.shape)
-print(labels.shape)
-# exit()
-
-logps = model(images)  # log probabilities
-loss = criterion(logps, labels)  # calculate the NLL loss
-
-
-print('Before backward pass: \n', model[0].weight.grad)
-loss.backward()
-print('After backward pass: \n', model[0].weight.grad)
-exit()
+# images, labels = next(iter(train_loader))
+# images = images.unsqueeze(1)
+# labels = labels.unsqueeze(1)
+# logps = model(images)
+# loss = criterion(logps, labels)
+# print('Before backward pass: \n', model.encoder[0].weight.grad)
+# loss.backward()
+# print('After backward pass: \n', model.encoder[0].weight.grad)
 
 optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9)
 time0 = time.time()
@@ -118,9 +58,8 @@ epochs = 15
 for e in range(epochs):
     running_loss = 0
     for images, labels in train_loader:
-        # Flatten MNIST images into a 784 long vector
-        images = images.view(images.shape[0], -1)
-
+        images = images.unsqueeze(1)
+        labels = labels.unsqueeze(1)
         # Training pass
         optimizer.zero_grad()
 
@@ -138,6 +77,9 @@ for e in range(epochs):
         print(f"Epoch {e} - Training loss: {running_loss / len(train_loader)}")
 print(f"Training Time (in minutes) = {(time.time() - time0) / 60}")
 
+exit()
+
+# TODO: adapt model evaluation from MNIST example
 images, labels = next(iter(val_loader))
 img = images[0].view(1, 784)
 with torch.no_grad():
