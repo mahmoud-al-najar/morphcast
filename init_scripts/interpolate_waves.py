@@ -41,8 +41,6 @@ print(timestamp_to_datetime(start_time), timestamp_to_datetime(end_time))
 
 all_hours = np.arange(start_time, end_time, 3600)
 all_dts = [timestamp_to_datetime(ts) for ts in all_hours]
-print(all_dts)
-exit()
 full_range = end_time - start_time
 
 years = np.arange(1997, 2017+1, 1)
@@ -72,18 +70,34 @@ for f_id in file_ids:
         missing_ids.append(f_id)
         print('Unavailable: ', f_id)
 
-x = raw_df.t
-y = raw_df.tp
-f = interpolate.interp1d(x, y)
-xnew = all_hours
-ynew = f(xnew)
+print(raw_df.head())
+raw_t = raw_df.t
+raw_tp = raw_df.tp
+raw_hs = raw_df.hs
+raw_direction = raw_df.dir
+
+t_new = all_hours
+
+f_tp = interpolate.interp1d(raw_t, raw_tp)
+tp_new = f_tp(t_new)
+
+f_hs = interpolate.interp1d(raw_t, raw_hs)
+hs_new = f_hs(t_new)
+
+f_direction = interpolate.interp1d(raw_t, raw_direction)
+direction_new = f_direction(t_new)
 
 raw_df['date'] = raw_df.t.apply(lambda x: datetime.utcfromtimestamp(x).strftime('%Y-%m-%d %H:%M:%S'))
 raw_df.date = raw_df.date.apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
 
-df = pd.DataFrame({'t': xnew, 'tp': ynew})
+df = pd.DataFrame({'t': t_new, 'tp': tp_new, 'hs': hs_new, 'dir': direction_new})
 df['date'] = df.t.apply(lambda x: datetime.utcfromtimestamp(x).strftime('%Y-%m-%d %H:%M:%S'))
 df.date = df.date.apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
+
+print(df.head())
+print(len(df))
+df.to_csv('interpolated_master_waves.csv')
+exit()
 
 for year in years:
     for month in months:
