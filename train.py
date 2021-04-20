@@ -13,7 +13,7 @@ from utilities.data_io import make_sub_areas
 random.seed(0)
 
 # TODO: refactor data handling?
-mg = np.load('./data/interpolated_master_grid.npy')
+mg = np.load('./init_scripts/interpolated_master_grid.npy')
 sub_area_pairs = make_sub_areas(mg, 20, pairs=True)
 random.shuffle(sub_area_pairs)
 

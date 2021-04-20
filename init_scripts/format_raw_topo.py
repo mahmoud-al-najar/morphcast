@@ -9,11 +9,7 @@ from scipy import interpolate
 from itertools import groupby
 
 from utilities.wrappers import Topo
-from utilities.common import get_datetime_from_ymd_string
-
-
-def to_timestamp(d):
-    return (d - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+from utilities.common import get_datetime_from_ymd_string, datetime_to_timestamp
 
 
 data_dir = '/media/mn/WD4TB/topo/survey_dems/data'
@@ -88,7 +84,7 @@ dates = []
 for i in range(len(files)):
     f = sorted(files)[i]
     date = f.replace('.npy', '')
-    dates.append(np.datetime64(get_datetime_from_ymd_string(date)))
+    dates.append(get_datetime_from_ymd_string(date))
 
     grid = np.load(os.path.join(out_grids_dir_path, f))
     if counter_grid is None:
@@ -102,6 +98,8 @@ for i in range(len(files)):
     master_grid[i] = grid
     count += 1
     print(f'{count}/{n_files} \t\t {f}')
+
+# dates = dates[1:]
 
 ys = master_grid.shape[1]
 xs = master_grid.shape[2]
@@ -118,24 +116,41 @@ for x in range(xs):
         ds = np.delete(dates, nan_indices)
 
         gaps_in_days = np.diff(ds) / np.timedelta64(1, 'D')
-        # print(gaps_in_days)
-        # lists = [list(g) for k, g in groupby(gaps_in_days, lambda x: x <= 45) if k]
-        # print(lists)
         gaps_mask = gaps_in_days < 45
-        for i in range(len(gaps_in_days)):
-            d1 = ds[i]
-            d2 = ds[i+1]
-            gap = gaps_in_days[i]
-            keep = gaps_mask[i]
-            print(d1, d2, gap, keep)
-        exit()
+        dates_and_gaps = []
 
-        target_dates = np.arange(ds[0], ds[len(ds) - 1], np.timedelta64(1, 'M'),
+        # ranges = []
+        # for i in range(len(gaps_in_days)):
+        #     d1 = ds[i]
+        #     d2 = ds[i+1]
+        #     gap = gaps_in_days[i]
+        #     keep = gaps_mask[i]
+        #
+        #     dates_and_gaps.append((d1, d2, gap, keep))
+        #
+        #     if keep:
+        #         if len(ranges) == 0:
+        #             ranges.append([])
+        #             ranges[-1].append(d1)
+        #             ranges[-1].append(d2)
+        #         else:
+        #             if len(ranges[-1]) == 0:
+        #                 ranges[-1].append(d1)
+        #                 ranges[-1].append(d2)
+        #             else:
+        #                 ranges[-1].append(d2)
+        #     else:
+        #         ranges.append([d2])
+        #         ranges.append([])
+        # [print(row) for row in ranges]
+        # [print(row) for row in dates_and_gaps]
+        # exit()
+
+        target_dates = np.arange(ds[1], ds[-1], np.timedelta64(1, 'M'),
                                  dtype='datetime64[M]')  # Y-M only
         target_dates = target_dates.astype('datetime64[D]')  # Y-M-D
-        target_dates = target_dates + np.array(20,
-                                               'timedelta64[D]')  # 20 day shift so first date is equal to survey date
         target_dates = target_dates.astype('datetime64[s]')  # add seconds
+
         if interpolated_master_grid is None:
             interpolated_master_grid = np.zeros((len(target_dates), master_grid.shape[1], master_grid.shape[2]))
         if target_start is None and target_end is None:
@@ -145,8 +160,10 @@ for x in range(xs):
             print(f'PROBLEM IN {x, y}')
             print(target_dates[0], target_dates[-1])
 
-        ts_dates = [to_timestamp(d) for d in ds]
-        ts_t_dates = [to_timestamp(d) for d in target_dates]
+        ts_dates = [datetime_to_timestamp(d) for d in ds]
+        ts_t_dates = [datetime_to_timestamp(d) for d in target_dates]
+
+        # exit()
 
         f = interpolate.interp1d(ts_dates, vs)
         new_pixel_series = f(ts_t_dates)
@@ -156,6 +173,17 @@ for x in range(xs):
 np.save('counter_grid', counter_grid)
 np.save('master_grid', master_grid)
 np.save('interpolated_master_grid', interpolated_master_grid)
+np.save('topo_dates', target_dates)
+
+exit()
+# for i in range(interpolated_master_grid.shape[0]):
+#     plt.figure(figsize=(5, 3))
+#     plt.imshow(interpolated_master_grid[i], vmin=-8, vmax=8)
+#     plt.colorbar(shrink=1)
+#     plt.suptitle(target_dates[i].astype('datetime64[D]'))
+#     plt.tight_layout()
+#     # plt.show()
+#     plt.savefig(f'/home/mn/PycharmProjects/morphcast/init_scripts/interpolated_plots/{i}')
 
 # TODO split raw data before interpolating according to:
 #    - number of consecutive values missing
