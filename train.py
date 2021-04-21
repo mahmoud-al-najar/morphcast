@@ -1,33 +1,37 @@
 import time
 import random
 import numpy as np
+import pandas as pd
 
 import torch
 from torch import nn, optim
 
 from model import AutoEncoder
+from unet import UNet
 from utilities.dataloader import Dataset
-from utilities.data_io import make_sub_areas
+from utilities.data_io import make_sub_areas, make_dataset
 
 
 random.seed(0)
 
 # TODO: refactor data handling?
-mg = np.load('./init_scripts/interpolated_master_grid.npy')
-sub_area_pairs = make_sub_areas(mg, 20, pairs=True)
-random.shuffle(sub_area_pairs)
+topo_grids = np.load('./init_scripts/interpolated_master_grid.npy')
+topo_dates = np.load('./init_scripts/topo_dates.npy')
+df_waves = pd.read_csv('./init_scripts/interpolated_master_waves.csv')
+dataset = make_dataset(topo_grids, topo_dates, df_waves, 24, pairs=True)
+random.shuffle(dataset)
 
 train_ratio = 0.7
 val_ratio = 0.1
 test_ratio = 0.2
 
-train_count = int(len(sub_area_pairs) * train_ratio)
-val_count = int(len(sub_area_pairs) * val_ratio)
-test_count = int(len(sub_area_pairs) * test_ratio)
+train_count = int(len(dataset) * train_ratio)
+val_count = int(len(dataset) * val_ratio)
+test_count = int(len(dataset) * test_ratio)
 
-train_pairs = np.array(sub_area_pairs[:train_count])
-val_pairs = np.array(sub_area_pairs[train_count:train_count+val_count])
-test_pairs = np.array(sub_area_pairs[-test_count:])
+train_pairs = dataset[:train_count]
+val_pairs = dataset[train_count:train_count+val_count]
+test_pairs = dataset[-test_count:]
 
 train_set = Dataset(pairs=train_pairs)
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True)
@@ -38,7 +42,8 @@ val_loader = torch.utils.data.DataLoader(val_set, batch_size=64, shuffle=True)
 test_set = Dataset(pairs=test_pairs)
 test_loader = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True)
 
-model = AutoEncoder().double()
+# model = AutoEncoder().double()
+model = UNet().double()
 print(model)
 
 criterion = nn.MSELoss()
@@ -57,14 +62,19 @@ time0 = time.time()
 epochs = 15
 for e in range(epochs):
     running_loss = 0
-    for images, labels in train_loader:
-        images = images.unsqueeze(1)
-        labels = labels.unsqueeze(1)
+    # for images, labels in train_loader:
+    for subarea1, subarea2, hs, tp, direction in train_loader:
+        subarea1 = subarea1.unsqueeze(1)
+        subarea2 = subarea2.unsqueeze(1)
+        hs = hs.unsqueeze(1)
+        tp = tp.unsqueeze(1)
+        direction = direction.unsqueeze(1)
+
         # Training pass
         optimizer.zero_grad()
 
-        output = model(images)
-        loss = criterion(output, labels)
+        output = model(subarea1)
+        loss = criterion(output, subarea2)
 
         # This is where the model learns by backpropagating
         loss.backward()

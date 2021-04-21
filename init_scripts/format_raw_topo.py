@@ -146,13 +146,9 @@ for x in range(xs):
         # [print(row) for row in dates_and_gaps]
         # exit()
 
-        # target_dates = np.arange(ds[1], ds[-1], np.timedelta64(1, 'M'),
-        #                          dtype='datetime64[M]')  # Y-M only
-        # target_dates = target_dates.astype('datetime64[D]')  # Y-M-D
         target_dates = np.arange(ds[1], ds[-1], np.timedelta64(7 * 4, 'D'),
-                                 dtype='datetime64[D]')  # Y-M only
-        # target_dates = target_dates.astype('datetime64[D]')  # Y-M-D
-        target_dates = target_dates.astype('datetime64[s]')  # add seconds
+                                 dtype='datetime64[D]')  # Y-M-D
+        target_dates = target_dates.astype('datetime64[s]')  # adding seconds
 
         if interpolated_master_grid is None:
             interpolated_master_grid = np.zeros((len(target_dates), master_grid.shape[1], master_grid.shape[2]))

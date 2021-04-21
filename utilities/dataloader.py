@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -16,8 +17,16 @@ class Dataset(torch.utils.data.Dataset):
         """Generates one sample of data"""
         sample = self.pairs[index]
 
-        x = sample[0]
-        y = sample[1]
-        x = torch.from_numpy(x).double()
-        y = torch.from_numpy(y).double()
-        return x, y
+        subarea1 = sample[0]
+        subarea2 = sample[1]
+        hs = sample[2]
+        tp = sample[3]
+        direction = sample[4]
+
+        subarea1 = torch.from_numpy(subarea1).double()
+        subarea2 = torch.from_numpy(subarea2).double()
+        hs = torch.from_numpy(hs).double()
+        tp = torch.from_numpy(tp).double()
+        direction = torch.from_numpy(direction).double()
+
+        return subarea1, subarea2, hs, tp, direction

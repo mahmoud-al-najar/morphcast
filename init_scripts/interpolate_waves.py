@@ -34,7 +34,7 @@ def read_measurement_metadata(file_path):
 target_start_ymd = '19961201'
 start_time = datetime_to_timestamp(get_datetime_from_ymd_string(target_start_ymd))
 
-target_end_ymd = '20170901'
+target_end_ymd = '20210201'
 end_time = datetime_to_timestamp(get_datetime_from_ymd_string(target_end_ymd))
 
 print(timestamp_to_datetime(start_time), timestamp_to_datetime(end_time))
@@ -43,7 +43,7 @@ all_hours = np.arange(start_time, end_time, 3600)
 all_dts = [timestamp_to_datetime(ts) for ts in all_hours]
 full_range = end_time - start_time
 
-years = np.arange(1997, 2017+1, 1)
+years = np.arange(1997, 2020+1, 1)
 months = np.arange(1, 13, 1)
 
 file_ids = []
@@ -51,6 +51,10 @@ file_ids.append('199611')
 for year in years:
     for month in months:
         file_ids.append(f'{year}{str(month).zfill(2)}')
+file_ids.append('202101')
+file_ids.append('202102')
+file_ids.append('202103')
+file_ids.append('202104')
 
 data_dir = '/media/mn/WD4TB/topo/waves/waverider-17m/processed_data/'
 

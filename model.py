@@ -12,14 +12,6 @@ class AutoEncoder(nn.Module):
             nn.ReLU(True),
             nn.MaxPool2d(2),   # 8, 5, 5
         )
-        # self.decoder = nn.Sequential(
-            # nn.ConvTranspose2d(8, 16, 3, stride=1),
-            # nn.ReLU(True),
-            # nn.ConvTranspose2d(16, 8, 3, stride=1),
-            # nn.ReLU(True),
-            # nn.ConvTranspose2d(8, 1, 3, stride=1),
-            # nn.Tanh()
-        # )
         self.decoder = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.Conv2d(8, 16, kernel_size=1, stride=1),  # 16, 10, 10
