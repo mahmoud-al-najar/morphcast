@@ -100,7 +100,8 @@ df.date = df.date.apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
 
 print(df.head())
 print(len(df))
-df.to_csv('interpolated_master_waves.csv')
+df.to_csv('interpolated_master_waves.csv', index=False)
+raw_df.to_csv('raw_master_waves.csv', index=False)
 exit()
 
 for year in years:
